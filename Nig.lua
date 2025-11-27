@@ -1,4 +1,3 @@
--- EggModule.lua
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
@@ -27,22 +26,22 @@ local function decode(data)
     data = data:gsub("[^" .. b64 .. "=]", "")
     return (data:gsub(".", function(x)
         if x == "=" then return "" end
-        local r, f = "", (b64:find(x) - 1)
-        for i = 6, 1, -1 do
-            r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and "1" or "0")
+        local r,f = "", (b64:find(x)-1)
+        for i = 6,1,-1 do
+            r = r .. (f % 2^i - f % 2^(i-1) > 0 and "1" or "0")
         end
         return r
     end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
         if #x ~= 8 then return "" end
         local c = 0
-        for i = 1, 8 do
+        for i=1,8 do
             c = c + (x:sub(i,i) == "1" and 2^(8-i) or 0)
         end
         return string.char(c)
     end))
 end
 
--- ========================= LOAD HWID LIST =========================
+-- ========================= LOAD DATA =========================
 function Egg.Load(url, token)
     local ok, resp = pcall(function()
         return request({
@@ -67,9 +66,12 @@ function Egg.Load(url, token)
     end
 
     local decoded = decode(data.content:gsub("\n",""))
-    Egg.HWIDS = HttpService:JSONDecode(decoded)
+    local json = HttpService:JSONDecode(decoded)
 
-    -- AUTO CHECK HWID (người chơi không chỉnh được)
+    Egg.HWIDS = json.HWIDS or {}
+    Egg.KEYS  = json.KEYS  or {}
+
+    -- ===== AUTO CHECK HWID =====
     local valid = false
     for _, v in ipairs(Egg.HWIDS) do
         if v == Egg.HWID then
@@ -79,8 +81,18 @@ function Egg.Load(url, token)
     end
 
     if not valid then
-        lp:Kick("Your HWID is not whitelisted!\nHWID: " .. Egg.HWID)
+        lp:Kick("Your HWID is not whitelisted!\nHWID: "..Egg.HWID)
     end
+end
+
+-- ========================= KEY CHECK =========================
+function Egg.IsValid(key)
+    for _, v in ipairs(Egg.KEYS or {}) do
+        if v == key then
+            return true
+        end
+    end
+    return false
 end
 
 return Egg
