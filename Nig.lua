@@ -68,12 +68,12 @@ function Egg.Load(url, token)
     local decoded = decode(data.content:gsub("\n",""))
     local json = HttpService:JSONDecode(decoded)
 
-    Egg.HWIDS = json.HWIDS or {}
-    Egg.KEYS  = json.KEYS  or {}
+    Egg.HWIDS = json.HWID or {}
+    Egg.KEYS  = json.KEY  or {}
 
     -- ===== AUTO CHECK HWID =====
     local valid = false
-    for _, v in ipairs(Egg.HWIDS) do
+    for _, v in ipairs(Egg.HWID) do
         if v == Egg.HWID then
             valid = true
             break
