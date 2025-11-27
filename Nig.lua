@@ -1,11 +1,11 @@
--- EggHWID.lua
+-- EggModule.lua
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local lp = Players.LocalPlayer
 
 local Egg = {}
 
--- Lấy HWID
+-- ========================= GET HWID =========================
 local function getHWID()
     local hwid = "Unknown"
     pcall(function()
@@ -21,7 +21,7 @@ end
 
 Egg.HWID = getHWID()
 
--- Base64 decode
+-- ========================= BASE64 DECODE =========================
 local b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local function decode(data)
     data = data:gsub("[^" .. b64 .. "=]", "")
@@ -36,15 +36,15 @@ local function decode(data)
         if #x ~= 8 then return "" end
         local c = 0
         for i = 1, 8 do
-            c = c + (x:sub(i, i) == "1" and 2 ^ (8 - i) or 0)
+            c = c + (x:sub(i,i) == "1" and 2^(8-i) or 0)
         end
         return string.char(c)
     end))
 end
 
--- Load danh sách HWID từ GitHub
-function Egg.LoadList(url, token)
-    local success, resp = pcall(function()
+-- ========================= LOAD HWID LIST =========================
+function Egg.Load(url, token)
+    local ok, resp = pcall(function()
         return request({
             Url = url,
             Method = "GET",
@@ -54,40 +54,33 @@ function Egg.LoadList(url, token)
             }
         }).Body
     end)
-    if not success or not resp then
-        return false, "Failed to connect"
+
+    if not ok or not resp then
+        lp:Kick("Failed to connect to server")
+        return
     end
 
     local data = HttpService:JSONDecode(resp)
     if not data or data.message then
-        return false, "File not found or bad token"
+        lp:Kick("Invalid GitHub token or file not found")
+        return
     end
 
-    local content = data.content
-    if not content then
-        return false, "Empty content"
-    end
+    local decoded = decode(data.content:gsub("\n",""))
+    Egg.HWIDS = HttpService:JSONDecode(decoded)
 
-    local json = decode(content:gsub("\n", ""))
-    local list = HttpService:JSONDecode(json)
-    Egg.List = list
-    return true
-end
-
--- Kiểm tra HWID
-function Egg.IsValid()
-    if not Egg.List then return false end
-    for _, v in ipairs(Egg.List) do
-        if (type(v) == "table" and v.HWID == Egg.HWID) or v == Egg.HWID then
-            return true
-        end
-    end
-    for _, v in pairs(Egg.List) do
+    -- AUTO CHECK HWID (người chơi không chỉnh được)
+    local valid = false
+    for _, v in ipairs(Egg.HWIDS) do
         if v == Egg.HWID then
-            return true
+            valid = true
+            break
         end
     end
-    return false
+
+    if not valid then
+        lp:Kick("Your HWID is not whitelisted!\nHWID: " .. Egg.HWID)
+    end
 end
 
 return Egg
